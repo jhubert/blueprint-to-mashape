@@ -74,9 +74,18 @@ my $resource_pattern = qr{
 }x;
 
 sub writeXml {
-    my ($endpoints) = @_;
+    my ( $endpoints, $models ) = @_;
     my $doc = XML::LibXML::Document->new( '1.0', 'utf-8' );
-    my $root = $doc->createElement('api');
+    $doc->setStandalone(1);
+    my $root = $doc->createElementNS( 'http://mashape.com', 'api' );
+    $doc->setDocumentElement($root);
+    $root->setNamespace( 'http://www.w3.org/2001/XMLSchema-instance', 'xsi',
+        0 );
+    $root->setAttributeNS(
+        'http://www.w3.org/2001/XMLSchema-instance',
+        'schemaLocation',
+        'http://mashape.com http://www.mashape.com/schema/mashape-4.0.xsd'
+    );
     foreach my $endpoint (@$endpoints) {
         my $tag = $doc->createElement('endpoint');
         my ( $http, $route ) = split ' ', $endpoint->{http};
@@ -134,12 +143,34 @@ sub writeXml {
             $parametersElt->appendChild($paramElt);
             $tag->appendChild($parametersElt);
         }
-
         ### append response
+        ### we need to find the most appropriate model definition
+        if ( defined $endpoint->{output} ) {
+            ### first, convert output example to a perl hash
+            $endpoint->{output} =~ s/:/ => /g;
+            my $object = eval $endpoint->{output};
+            my $found  = 0;
+            foreach my $type ( keys %$models ) {
+                my $model = $models->{$type};
+
+                if ( hasSameType( $model, $object ) ) {
+                    my $responseElt = $doc->createElement('response');
+                    $responseElt->setAttribute( 'type' => $type );
+                    $tag->appendChild($responseElt);
+                }
+
+            }
+
+        }
         $root->appendChild($tag);
     }
     $doc->setDocumentElement($root);
     print $doc->toString();
+}
+
+sub hasSameType() {
+    my ( $attrArray, $object ) = @_;
+    1;
 }
 
 eval {
@@ -149,6 +180,7 @@ eval {
     close FILE;
 
     ### Parse group definition
+    my $models = {};
     while ( $content =~ /$group_pattern/g ) {
         my $name  = $MATCH{name};
         my $group = $MATCH{group};
@@ -156,15 +188,26 @@ eval {
         print Dumper $group;
         print "END CONTENT\n";
 
+        my $modelname = undef;
         ### Parse model definition
         while ( $group =~ /$model_pattern/g ) {
-            my $model = $MATCH{name};
-            print Dumper $model;
+            $modelname = $MATCH{name};
         }
         print "GROUP $group";
+
         while ( $group =~ /$property_pattern/g ) {
-            print Dumper %MATCH;
+            my $attribute = {};
+            foreach my $key ( keys %MATCH ) {
+                $attribute->{$key} = $MATCH{$key};
+            }
+            if ( defined $models->{$modelname} ) {
+                push @{ $models->{$modelname} }, $attribute;
+            }
+            else {
+                $models->{$modelname} = [$attribute];
+            }
         }
+        print Dumper $models;
 
     }
 
@@ -187,7 +230,7 @@ eval {
         push @$endpoints, $resource;
     }
 
-    writeXml($endpoints);
+    writeXml( $endpoints, $models );
 
 };
 if ($@) {
