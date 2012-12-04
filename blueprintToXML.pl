@@ -21,10 +21,6 @@ $| = 1;
 my $commands =
   { DELETE => 'Delete', GET => 'Get', POST => 'Create', PUT => 'Update' };
 
-my $properties_pattern = qr{
-    (?<property>      ^\s.*?\n)
-}x;
-
 ### group pattern
 my $group_pattern = qr{
         (?m:^)              (?s:[-]{2}.)
