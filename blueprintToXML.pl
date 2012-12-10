@@ -168,7 +168,9 @@ sub _getAppropriateType {
 
         }
     }
-    printf "_getAppropriateType(): return %s\n", (defined $type? $type : 'undef') if $main::DEBUG;
+    printf "_getAppropriateType(): return %s\n",
+      ( defined $type ? $type : 'undef' )
+      if $main::DEBUG;
     return $type;
 }
 
@@ -206,7 +208,7 @@ sub createParameters {
     ### All params should be defined as property in model
     my $model = _getAppropriateType( $models, $endpoint->{req_header},
         $endpoint->{params} );
-    print "213: model = \n", (defined $model? $model : '') if $main::DEBUG;
+    print "213: model = \n", ( defined $model ? $model : '' ) if $main::DEBUG;
     ### check parameters
     if ( exists $endpoint->{params} ) {
         print "214: ", Dumper $endpoint->{params} if $main::DEBUG;
@@ -216,17 +218,17 @@ sub createParameters {
         foreach my $param ( keys %params ) {
             ### get properties from model
             my $property = undef;
-            if ( defined $model ){
-		$property = $model->{properties}->{$param};
+            if ( defined $model ) {
+                $property = $model->{properties}->{$param};
                 print "property = ", Dumper $property if $main::DEBUG;
             }
             ### if there is no model - and subsequently no property, guess the type
-            if ( !defined $property ){
-		$property = _guessType( $param, $params{$param}, $models );
-            printf "property = %s\n", $property if $main::DEBUG;
+            if ( !defined $property ) {
+                $property = _guessType( $param, $params{$param}, $models );
+                printf "property = %s\n", $property if $main::DEBUG;
             }
-            my $paramElt = createParam( $doc, $param, $endpoint->{signatures},
-                $property );
+            my $paramElt =
+              createParam( $doc, $param, $endpoint->{signatures}, $property );
             $tag->appendChild($paramElt);
         }
     }
@@ -235,12 +237,12 @@ sub createParameters {
     my @placeholders = ( $endpoint->{resource} =~ m/{([^}]+)}/g );
 
     foreach my $placeholder (@placeholders) {
-            my $property = undef;
-            ### if there is no model - and subsequently no property, guess the type
-            if ( !defined $property ){
-		$property = _guessType( $placeholder, undef, $models );
+        my $property = undef;
+        ### if there is no model - and subsequently no property, guess the type
+        if ( !defined $property ) {
+            $property = _guessType( $placeholder, undef, $models );
             printf "property = %s\n", $property if $main::DEBUG;
-            }
+        }
         my $paramElt =
           createParam( $doc, $placeholder, $endpoint->{signatures}, $property );
         $tag->appendChild($paramElt);
@@ -250,16 +252,18 @@ sub createParameters {
 }
 
 sub _guessType {
-    my ($param, $value, $models) = @_;
-    printf "_guessType(%s, %s): start\n", $param, (defined $value ? $value : 'undef') if $main::DEBUG;
+    my ( $param, $value, $models ) = @_;
+    printf "_guessType(%s, %s): start\n", $param,
+      ( defined $value ? $value : 'undef' )
+      if $main::DEBUG;
 
-    foreach my $model ( @$models ){
-	my $properties = $model->{properties};
-        foreach my $key (keys %$properties){
-	    if ( $key eq $param ){
-		return $properties->{$key}->{type};
-	    }
-	}
+    foreach my $model (@$models) {
+        my $properties = $model->{properties};
+        foreach my $key ( keys %$properties ) {
+            if ( $key eq $param ) {
+                return $properties->{$key}->{type};
+            }
+        }
     }
     if ( defined $value && $value =~ /^\"[^"]+\"$/ ) {
         return 'string';
