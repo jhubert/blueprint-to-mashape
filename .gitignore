@@ -1,3 +1,9 @@
 *~
 *.bak
+*.ERR
+*.swp
+*.txt
+*.xml
+*.xsd
 .DS_Store
+examples/*
